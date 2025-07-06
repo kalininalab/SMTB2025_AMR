@@ -38,7 +38,67 @@ for bacteria_file in bacteria_names:
   genotype_array = np.array([list(map(int, genotypes)) for genotypes in genotype_data.values()])
   phenotype_array = np.array([int(phenotypes[antibiotic_index]) for phenotypes in phenotype_data.values()])
 
-  X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(genotype_array, phenotype_array, random_state=42, test_size=float(0.2))
+  train = []
+  test = []
+  validation = []
+
+  train_file = open(f"/home/alper/SMTB2025_AMR/AMR-DL/Data/Splits/{bacteria_file}/train.txt", 'r')
+  test_file = open(f"/home/alper/SMTB2025_AMR/AMR-DL/Data/Splits/{bacteria_file}/test_validation.txt", 'r')
+  validation_file = open(f"/home/alper/SMTB2025_AMR/AMR-DL/Data/Splits/{bacteria_file}/validation.txt", 'r')
+
+  for line in train_file:
+      line = line.strip()
+      train.append(line)
+
+  for line in test_file:
+      line = line.strip()
+      test.append(line)
+
+  for line in validation_file:
+      line = line.strip()
+      validation.append(line) 
+
+  X_train = []
+  y_train = []
+  X_test = []
+  y_test = []
+  X_validation = []
+  y_validation = []
+
+  train_strains_to_be_used = []
+  test_strains_to_be_used = []
+  validation_strains_to_be_used = []
+
+  strain_to_index = {strain: idx for idx, strain in enumerate(genotype_data.keys())}
+
+  for train_strain in train:
+      if train_strain in strain_to_index:
+          train_strains_to_be_used.append(train_strain)
+          idx = strain_to_index[train_strain]
+          X_train.append(genotype_array[idx])  # Append the list of genotypes using the index
+          y_train.append(phenotype_array[idx])  # Append the phenotype value using the index
+
+  for test_strain in test:
+      if test_strain in strain_to_index:
+          test_strains_to_be_used.append(test_strain)
+          idx = strain_to_index[test_strain]
+          X_test.append(genotype_array[idx])  # Append the list of genotypes using the index
+          y_test.append(phenotype_array[idx])  # Append the phenotype value using the index
+
+  for validation_strain in validation:
+      if validation_strain in strain_to_index:
+          validation_strains_to_be_used.append(validation_strain)
+          idx = strain_to_index[validation_strain]
+          X_validation.append(genotype_array[idx])  # Append the list of genotypes using the index
+          y_validation.append(phenotype_array[idx])  # Append the phenotype value using the index
+
+  # Convert lists to numpy arrays
+  X_train = np.array(X_train, dtype=int)
+  y_train = np.array(y_train, dtype=int)
+  X_test = np.array(X_test, dtype=int)
+  y_test = np.array(y_test, dtype=int)
+  X_validation = np.array(X_validation, dtype=int)
+  y_validation = np.array(y_validation, dtype=int)
 
   lr_model = LinearRegression()
 
