@@ -5,8 +5,25 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 import pickle
 import xgboost as xgb
+import os
 
-g_file = "/srv/scratch/AMR/Variant_GPA_Kmer_uncompressed/Pseudomonas_aeruginosa_train_genotype_vargpakmer.tsv"
+def bacteria_splits_directory():
+    bacteria_directory = "/home/marta/SMTB2025_AMR/AMR-DL/Data/Splits"
+    filepaths = " "
+    for file in os.listdir(bacteria_splits_directory):
+        filepath = os.path.join(bacteria_splits_directory, file)
+        if os.path.isfile(filepath):
+            return filepaths
+        
+def bacteria_phenotypes_directory():
+    bacteria_directory = "/home/marta/SMTB2025_AMR/AMR-DL/Data/Splits"
+    filepaths = " "
+    for file in os.listdir(bacteria_phenotypes_directory):
+        filepath = os.path.join(bacteria_phenotypes_directory, file)
+        if os.path.isfile(filepath):
+            return filepaths
+
+g_file = bacteria_splits_directory()
 with open(g_file, 'r') as file:
     reader = csv.reader(file, delimiter='\t')
 
@@ -14,7 +31,8 @@ with open(g_file, 'r') as file:
     genotype_data = {rows[0]: rows[1:] for rows in reader}
     feature_names = headers[1:]
 
-# Use StringIO to simulate a file object
+#bactera_name = 
+#file2 = open(f"/srv/scratch/AMR/IR_phenotype/{bacteria_name}/phenotype.txt", 'r'")
 file2 = open("/srv/scratch/AMR/IR_phenotype/Pseudomonas_aeruginosa/phenotype.txt", 'r')
 
 reader = csv.reader(file2, delimiter='\t')
@@ -121,3 +139,5 @@ for i in sorted_importances:
         print(i)
 
 
+#zapisac osobno do plikow dla kazdej bakterii, dodajac do nazwy pliku nazwa_bakterii_feature_importances
+#sorted_importances = print(file = 'feature_importances_nazwabakterii.txt', 'w')
