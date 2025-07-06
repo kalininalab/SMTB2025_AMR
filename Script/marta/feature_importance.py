@@ -54,16 +54,16 @@ phenotype_data = ordered_phenotype_data
 genotype_array = np.array([list(map(int, genotypes)) for genotypes in genotype_data.values()])
 phenotype_array = np.array([int(phenotypes[antibiotic_index]) for phenotypes in phenotype_data.values()])
 
-with open("/srv/scratch/AMR/XGB_Cleaned_KMER_IR/Pseudomonas_aeruginosa/seed_42_testsize_0.2_resampling_holdout_XGBOOST_model.sav", 'rb') as trained_model_file:
+with open("/srv/scratch/AMR/XGB_Cleaned_KMER_IR/Campylobacter_jejuni/seed_42_testsize_0.2_resampling_holdout_XGBOOST_model.sav", 'rb') as trained_model_file:
     model = pickle.load(trained_model_file)
 
 train = []
 test = []
 validation = []
 
-train_file = open("/home/marta/SMTB2025_AMR/AMR-DL/Data/Splits/Pseudomonas_aeruginosa/train.txt", 'r')
-test_file = open("/home/marta/SMTB2025_AMR/AMR-DL/Data/Splits/Pseudomonas_aeruginosa/test_validation.txt", 'r')
-validation_file = open("/home/marta/SMTB2025_AMR/AMR-DL/Data/Splits/Pseudomonas_aeruginosa/validation.txt", 'r')
+train_file = open("/home/alper/SMTB2025_AMR/AMR-DL/Data/Splits/Campylobacter_jejuni/train.txt", 'r')
+test_file = open("/home/alper/SMTB2025_AMR/AMR-DL/Data/Splits/Campylobacter_jejuni/test_validation.txt", 'r')
+validation_file = open("/home/alper/SMTB2025_AMR/AMR-DL/Data/Splits/Campylobacter_jejuni/validation.txt", 'r')
 
 for line in train_file:
     line = line.strip()
@@ -125,12 +125,19 @@ y_pred = (y_hat >= 0.5).astype(int)
 
 model_mcc_score = sklearn.metrics.matthews_corrcoef(y_test, y_pred)
 
-feature_importance = model.get_score(importance_type ='weight')
-feature_importance = np.array([feature_importance[feature] for feature in feature_names])
+feature_importance_dict = model.get_score(importance_type ='weight')
 
-gini_importances = pd.Series(feature_importance, index=feature_names)
-importances_dict = gini_importances.to_dict()
-sorted_importances = sorted(importances_dict.items(), key=lambda x: x[1], reverse=True)
+feature_importance_dict_with_corrected_names = {}
+
+for feature in feature_importance_dict.keys():
+    feature_index = int(feature[1:])  # Convert feature index to integer
+    curr_feature_name = feature_names[feature_index]  # Get the feature name using the index
+    feature_importance_dict_with_corrected_names[curr_feature_name] = feature_importance_dict[feature]
+
+sorted_importances = sorted(feature_importance_dict_with_corrected_names.items(), key=lambda x: x[1], reverse=True)
+
+print(model_mcc_score)
+print(sorted_importances[:10])
 
 for i in sorted_importances:
     if i[1] <= 0:
