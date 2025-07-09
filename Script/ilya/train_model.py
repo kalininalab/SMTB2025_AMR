@@ -20,6 +20,12 @@ parser.add_argument(
 parser.add_argument(
     "--max_epochs", type=int, default=50, help="Number of epochs to train"
 )
+parser.add_argument(
+    "--batch_size", type=int, default=32, help="Batch size for training and evaluation"
+)
+parser.add_argument(
+    "--hidden_dim", type=int, default=64, help="Hidden dimension for the model"
+)
 
 args = parser.parse_args()
 
@@ -41,7 +47,7 @@ train_dataloader = torch.utils.data.DataLoader(
             torch.tensor(y_train.values, dtype=torch.float32),
         )
     ),
-    batch_size=32,
+    batch_size=args.batch_size,
     shuffle=True,
 )
 val_dataloader = torch.utils.data.DataLoader(
@@ -51,7 +57,7 @@ val_dataloader = torch.utils.data.DataLoader(
             torch.tensor(y_val.values, dtype=torch.float32),
         )
     ),
-    batch_size=32,
+    batch_size=args.batch_size,
     shuffle=False,
 )
 test_dataloader = torch.utils.data.DataLoader(
@@ -61,23 +67,30 @@ test_dataloader = torch.utils.data.DataLoader(
             torch.tensor(y_test.values, dtype=torch.float32),
         )
     ),
-    batch_size=32,
+    batch_size=args.batch_size,
     shuffle=False,
 )
 
 
 class MyModel(L.LightningModule):
-    def __init__(self, n_feats: int, dropout: float = 0.5):
+    def __init__(
+        self,
+        n_feats: int,
+        dropout: float = 0.5,
+        hidden_dim: int = 64,
+        lr: float = 1e-3,
+    ):
         super().__init__()
         self.mlp = torch.nn.Sequential(
-            torch.nn.Linear(n_feats, 64),  # layer 1
+            torch.nn.Linear(n_feats, hidden_dim),  # layer 1
             torch.nn.ReLU(),  # activation function
             torch.nn.Dropout(dropout),  # dropout for regularization
-            torch.nn.Linear(64, 32),
+            torch.nn.Linear(hidden_dim, hidden_dim // 2),
             torch.nn.ReLU(),
             torch.nn.Dropout(dropout),
-            torch.nn.Linear(32, 1),
+            torch.nn.Linear(hidden_dim // 2, 1),
         )
+        self.lr = lr
 
     def forward(self, x: torch.Tensor):
         return self.mlp(x)
@@ -113,7 +126,7 @@ class MyModel(L.LightningModule):
         return self.shared_step(batch, step="test")
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
 
 
 model = MyModel(n_feats=x.shape[1], dropout=args.dropout)
