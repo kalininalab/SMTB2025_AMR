@@ -1,12 +1,14 @@
+#!/usr/bin/env python3
+"""
+Script to filter FASTA files to keep only sequences containing specific gene keys.
+Processes all FASTA files in a directory and creates filtered versions.
+"""
+
+import argparse
 import json
 import os
 import re
 from glob import glob
-
-# TODO: Change this to be commands args
-path = (
-    "/Users/danielkorkin/Documents/SMTB2025/Lab16/SMTB2025_AMR/AMR-DL/Data/Raw/pa_ffn"
-)
 
 # Next for each dictionary only keep the keys and content where the keys have one of the items in the following list in their keys (use Whole Word Match)
 keys = [
@@ -190,6 +192,34 @@ def save_filtered_ffn_files(results, output_directory):
 
 # 6. Main execution
 if __name__ == "__main__":
+    # Set up command line argument parsing
+    parser = argparse.ArgumentParser(
+        description="Filter FASTA files to keep only sequences containing specific gene keys."
+    )
+    parser.add_argument(
+        "path",
+        type=str,
+        help="Path to the directory containing FASTA files to process"
+    )
+    parser.add_argument(
+        "-o", "--output-dir",
+        type=str,
+        default=None,
+        help="Output directory for filtered files (default: filtered_ffn_files in input directory)"
+    )
+    
+    args = parser.parse_args()
+    path = args.path
+    
+    # Validate path exists
+    if not os.path.exists(path):
+        print(f"Error: Path {path} does not exist")
+        exit(1)
+    
+    if not os.path.isdir(path):
+        print(f"Error: Path {path} is not a directory")
+        exit(1)
+    
     # Remove duplicates from keys list
     unique_keys = list(set(keys))
     print(f"Looking for {len(unique_keys)} unique gene keys:")
@@ -216,6 +246,6 @@ if __name__ == "__main__":
     print(f"Results saved to {output_file}")
 
     # Save filtered sequences to new FFN files
-    output_directory = os.path.join(path, "filtered_ffn_files")
+    output_directory = args.output_dir or os.path.join(path, "filtered_ffn_files")
     print(f"\nCreating filtered FFN files in: {output_directory}")
     save_filtered_ffn_files(results, output_directory)
