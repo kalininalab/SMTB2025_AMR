@@ -7,12 +7,12 @@ from sklearn.model_selection import train_test_split
 import argparse
 
 
+# Acinetobacter_baumannii Escherichia_coli Neisseria_gonorrhoeae Salmonella_enterica Streptococcus_pneumoniae Campylobacter_jejuni Klebsiella_pneumoniae Pseudomonas_aeruginosa Staphylococcus_aureus
+
+
 parser = argparse.ArgumentParser(description="Train a model on AMR data")
 parser.add_argument(
-    "--genotype", type=str, required=True, help="Path to the genotype file"
-)
-parser.add_argument(
-    "--phenotype", type=str, required=True, help="Path to the phenotype file"
+    "--species", type=str, required=True, help="Species name for the model"
 )
 parser.add_argument(
     "--dropout", type=float, default=0.5, help="Dropout rate for the model"
@@ -29,9 +29,10 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-
-x = pd.read_csv(args.genotype, sep="\t", index_col=0)
-y = pd.read_csv(args.phenotype, sep="\t", index_col=0)
+genotype_file = f"/srv/scratch/AMR/Reduced_genotype/{args.species}_reduced_genotype.tsv"
+phenotype_file = f"/srv/scratch/AMR/IR_phenotype/{args.species}/phenotype.txt"
+x = pd.read_csv(genotype_file, sep="\t", index_col=0)
+y = pd.read_csv(phenotype_file, sep="\t", index_col=0)
 y = y.loc[x.index]
 
 x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
@@ -111,7 +112,7 @@ class MyModel(L.LightningModule):
             num_classes=2,
             task="binary",
         )
-        self.log(f"{step}_loss", loss, on_step=False, on_epoch=True)
+        self.log(f"{step}_loss", loss, on_step=True, on_epoch=True)
         self.log(f"{step}_mcc", mcc, on_step=False, on_epoch=True)
         self.log(f"{step}_acc", acc, on_step=False, on_epoch=True)
         return loss
@@ -126,13 +127,37 @@ class MyModel(L.LightningModule):
         return self.shared_step(batch, step="test")
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=1e-5)
+
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optim, mode="min", factor=0.1, patience=5, verbose=True
+        )
+        return {
+            "optimizer": optim,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_loss",
+                "frequency": 1,
+            },
+        }
 
 
 model = MyModel(n_feats=x.shape[1], dropout=args.dropout)
-csv_logger = CSVLogger("logs", name="my_model")
+csv_logger = CSVLogger("logs", name=args.species)
+checkpointer = L.pytorch.callbacks.ModelCheckpoint(
+    # dirpath="checkpoints",
+    filename="best_model",
+    monitor="val_loss",
+    mode="min",
+    save_top_k=1,
+)
 trainer = L.Trainer(
-    max_epochs=50, accelerator="cpu", logger=csv_logger, enable_progress_bar=True
+    max_epochs=50,
+    accelerator="cpu",
+    logger=csv_logger,
+    callbacks=[checkpointer],
+    enable_progress_bar=True,
+    log_every_n_steps=10,
 )
 trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 trainer.test(model, dataloaders=test_dataloader)
