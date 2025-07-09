@@ -35,6 +35,27 @@ x = pd.read_csv(genotype_file, sep="\t", index_col=0)
 y = pd.read_csv(phenotype_file, sep="\t", index_col=0)
 y = y.loc[x.index]
 
+
+## Use the code below to load the data splits if they exist
+
+# species = "Salmonella_enterica"
+# genotype_file = f"/srv/scratch/AMR/Reduced_genotype/{species}_reduced_genotype.tsv"
+# phenotype_file = f"/srv/scratch/AMR/IR_phenotype/{species}/phenotype.txt"
+
+# x = pd.read_csv(genotype_file, sep="\t", index_col=0)
+# y = pd.read_csv(phenotype_file, sep="\t", index_col=0)
+# with open(f"/srv/scratch/AMR/Data_splits/{species}/train.txt") as f:
+#     train_indices = f.read().splitlines()
+#     train_indices = list(set(train_indices).intersection(x.index))
+# with open(f"/srv/scratch/AMR/Data_splits/{species}/validation.txt") as f:
+#     val_indices = f.read().splitlines()
+# with open(f"/srv/scratch/AMR/Data_splits/{species}/test.txt") as f:
+#     test_indices = f.read().splitlines()
+
+# x.loc[train_indices]
+# y.loc[train_indices]
+
+
 x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
 x_val, x_test, y_val, y_test = train_test_split(
     x_val, y_val, test_size=0.5, random_state=42
