@@ -1,3 +1,11 @@
 torch
 transformers
 flash-attn
+seaborn
+plotly
+kaleido
+numpy
+biopython
+pandas
+scipy
+matplotlib
