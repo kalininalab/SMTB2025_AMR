@@ -1,2 +1,8 @@
-.DS_Store
-logs
+.*
+!.gitignore
+!.pre-commit-config.yaml
+!.github/
+__*__
+*.pyc
+*.egg-info
+logs/
