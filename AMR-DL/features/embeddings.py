@@ -70,6 +70,7 @@ class GenomeOceanEmbedder:
         # Load model directly on target device
         if self.device == "cuda":
             try:
+                # Try with accelerate (device_map)
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_name,
                     trust_remote_code=True,
@@ -77,7 +78,35 @@ class GenomeOceanEmbedder:
                     attn_implementation="flash_attention_2",
                     device_map="auto",
                 )
-                logger.info("Successfully loaded model with Flash Attention 2")
+                logger.info(
+                    "Successfully loaded model with Flash Attention 2 and device_map"
+                )
+            except ValueError as e:
+                if "accelerate" in str(e):
+                    logger.warning(
+                        "accelerate not available, loading without device_map"
+                    )
+                    try:
+                        # Fallback: Load without device_map
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            model_name,
+                            trust_remote_code=True,
+                            torch_dtype=torch.bfloat16,
+                            attn_implementation="flash_attention_2",
+                        ).to(self.device)
+                        logger.info("Successfully loaded model with Flash Attention 2")
+                    except Exception as e2:
+                        logger.warning(
+                            f"Flash Attention 2 failed, falling back to standard attention: {e2}"
+                        )
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            model_name,
+                            trust_remote_code=True,
+                            torch_dtype=torch.bfloat16,
+                        ).to(self.device)
+                        logger.info("Successfully loaded model with standard attention")
+                else:
+                    raise e
             except Exception as e:
                 logger.warning(
                     f"Flash Attention 2 failed, falling back to standard attention: {e}"
@@ -86,8 +115,8 @@ class GenomeOceanEmbedder:
                     model_name,
                     trust_remote_code=True,
                     torch_dtype=torch.bfloat16,
-                    device_map="auto",
-                )
+                ).to(self.device)
+                logger.info("Successfully loaded model with standard attention")
         else:
             # For CPU, don't use flash attention
             self.model = AutoModelForCausalLM.from_pretrained(
