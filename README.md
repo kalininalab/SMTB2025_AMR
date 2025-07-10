@@ -14,11 +14,3 @@ Run the training script with:
 ```bash
 python scripts/train_model.py --data /src/scratch/AMR/data/<dataset_type>/<bacteria_name>
 ```
-
-For training on all of the bacteria, you can use:
-
-```bash
-for i in /src/scratch/AMR/data/*/*; do
-    python scripts/train_model.py --data $i
-done
-```
