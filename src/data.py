@@ -1,7 +1,7 @@
 import pandas as pd
-from torch.utils.data import Dataset
 import torch
 from lightning.pytorch import LightningDataModule
+from torch.utils.data import Dataset
 
 
 class BinaryDataset(Dataset):

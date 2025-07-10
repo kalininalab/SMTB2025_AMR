@@ -1,7 +1,7 @@
 import lightning as L
-from lightning.pytorch.loggers import CSVLogger
-import torchmetrics as M
 import torch
+import torchmetrics as M
+from lightning.pytorch.loggers import CSVLogger
 
 
 class MyModel(L.LightningModule):

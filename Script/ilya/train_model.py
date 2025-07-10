@@ -1,31 +1,21 @@
-import pandas as pd
-import lightning as L
-from lightning.pytorch.loggers import CSVLogger
-import torchmetrics as M
-import torch
-from sklearn.model_selection import train_test_split
 import argparse
 
+import lightning as L
+import pandas as pd
+import torch
+import torchmetrics as M
+from lightning.pytorch.loggers import CSVLogger
+from sklearn.model_selection import train_test_split
 
 # Acinetobacter_baumannii Escherichia_coli Neisseria_gonorrhoeae Salmonella_enterica Streptococcus_pneumoniae Campylobacter_jejuni Klebsiella_pneumoniae Pseudomonas_aeruginosa Staphylococcus_aureus
 
 
 parser = argparse.ArgumentParser(description="Train a model on AMR data")
-parser.add_argument(
-    "--species", type=str, required=True, help="Species name for the model"
-)
-parser.add_argument(
-    "--dropout", type=float, default=0.5, help="Dropout rate for the model"
-)
-parser.add_argument(
-    "--max_epochs", type=int, default=50, help="Number of epochs to train"
-)
-parser.add_argument(
-    "--batch_size", type=int, default=32, help="Batch size for training and evaluation"
-)
-parser.add_argument(
-    "--hidden_dim", type=int, default=64, help="Hidden dimension for the model"
-)
+parser.add_argument("--species", type=str, required=True, help="Species name for the model")
+parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate for the model")
+parser.add_argument("--max_epochs", type=int, default=50, help="Number of epochs to train")
+parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training and evaluation")
+parser.add_argument("--hidden_dim", type=int, default=64, help="Hidden dimension for the model")
 
 args = parser.parse_args()
 
@@ -57,9 +47,7 @@ y = y.loc[x.index]
 
 
 x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
-x_val, x_test, y_val, y_test = train_test_split(
-    x_val, y_val, test_size=0.5, random_state=42
-)
+x_val, x_test, y_val, y_test = train_test_split(x_val, y_val, test_size=0.5, random_state=42)
 
 
 train_dataloader = torch.utils.data.DataLoader(
@@ -67,6 +55,7 @@ train_dataloader = torch.utils.data.DataLoader(
         zip(
             torch.tensor(x_train.values, dtype=torch.float32),
             torch.tensor(y_train.values, dtype=torch.float32),
+            strict=False,
         )
     ),
     batch_size=args.batch_size,
@@ -77,6 +66,7 @@ val_dataloader = torch.utils.data.DataLoader(
         zip(
             torch.tensor(x_val.values, dtype=torch.float32),
             torch.tensor(y_val.values, dtype=torch.float32),
+            strict=False,
         )
     ),
     batch_size=args.batch_size,
@@ -87,6 +77,7 @@ test_dataloader = torch.utils.data.DataLoader(
         zip(
             torch.tensor(x_test.values, dtype=torch.float32),
             torch.tensor(y_test.values, dtype=torch.float32),
+            strict=False,
         )
     ),
     batch_size=args.batch_size,
@@ -150,9 +141,7 @@ class MyModel(L.LightningModule):
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=1e-5)
 
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optim, mode="min", factor=0.1, patience=5, verbose=True
-        )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="min", factor=0.1, patience=5, verbose=True)
         return {
             "optimizer": optim,
             "lr_scheduler": {
