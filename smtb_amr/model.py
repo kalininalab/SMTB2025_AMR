@@ -1,10 +1,9 @@
-import lightning as L
 import torch
 import torchmetrics as M
-from lightning.pytorch.loggers import CSVLogger
+from lightning import LightningModule
 
 
-class MyModel(L.LightningModule):
+class MyModel(LightningModule):
     def __init__(
         self,
         n_feats: int,
