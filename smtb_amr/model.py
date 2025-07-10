@@ -29,22 +29,22 @@ class MyModel(LightningModule):
     def shared_step(self, batch, step: str = "train"):
         x, y = batch
         y_hat = self.forward(x)
-        loss = torch.nn.functional.binary_cross_entropy_with_logits(y_hat, y)
-        mcc = M.functional.matthews_corrcoef(
-            y_hat.sigmoid() > 0.5,
-            y.int(),
-            num_classes=2,
-            task="binary",
-        )
-        acc = M.functional.accuracy(
-            y_hat.sigmoid() > 0.5,
-            y.int(),
-            num_classes=2,
-            task="binary",
-        )
+        loss = torch.nn.functional.mse_loss(y_hat, y)
+        # mcc = M.functional.matthews_corrcoef(
+        #     y_hat.sigmoid() > 0.5,
+        #     y.int(),
+        #     num_classes=2,
+        #     task="binary",
+        # )
+        # acc = M.functional.accuracy(
+        #     y_hat.sigmoid() > 0.5,
+        #     y.int(),
+        #     num_classes=2,
+        #     task="binary",
+        # )
         self.log(f"{step}_loss", loss, on_step=True, on_epoch=True)
-        self.log(f"{step}_mcc", mcc, on_step=False, on_epoch=True)
-        self.log(f"{step}_acc", acc, on_step=False, on_epoch=True)
+        # self.log(f"{step}_mcc", mcc, on_step=False, on_epoch=True)
+        # self.log(f"{step}_acc", acc, on_step=False, on_epoch=True)
         return loss
 
     def training_step(self, batch, batch_idx):

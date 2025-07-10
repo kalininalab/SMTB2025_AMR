@@ -5,13 +5,14 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 
-from smtb_amr.data import AMRDataModule
+from smtb_amr.data import AMRDataModule, ESMDataModule
 from smtb_amr.model import MyModel
 
 torch.set_float32_matmul_precision("medium")
 
 parser = argparse.ArgumentParser(description="Train a model on AMR data")
-parser.add_argument("--data", type=str, required=True, help="Data folder")
+parser.add_argument("--embeddings_folder", type=str, required=True, help="Data folder")
+parser.add_argument("--csv_file", type=str, required=True, help="CSV file with data")
 parser.add_argument("--dropout", type=float, default=0.5, help="Dropout rate for the model")
 parser.add_argument("--max_epochs", type=int, default=50, help="Number of epochs to train")
 parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training and evaluation")
@@ -21,15 +22,16 @@ parser.add_argument("--num_workers", type=int, default=0, help="Number of worker
 
 args = parser.parse_args()
 
-datamodule = AMRDataModule(
-    folder=args.data,
+datamodule = ESMDataModule(
+    embeddings_folder=args.embeddings_folder,
+    csv_file=args.csv_file,
     batch_size=args.batch_size,
     num_workers=args.num_workers,  # Adjust as needed for your environment
 )
 datamodule.setup()
 
 model = MyModel(n_feats=datamodule.n_feats, dropout=args.dropout)
-csv_logger = CSVLogger("logs", name=args.data.split("/")[-1])
+# csv_logger = CSVLogger("logs", name=args.data.split("/")[-1])
 checkpointer = ModelCheckpoint(
     # dirpath="checkpoints",
     filename="best_model",
@@ -41,7 +43,7 @@ trainer = Trainer(
     max_epochs=args.max_epochs,
     accelerator="auto",
     devices="1",
-    logger=csv_logger,
+    # logger=csv_logger,
     callbacks=[checkpointer],
     enable_progress_bar=True,
     log_every_n_steps=10,

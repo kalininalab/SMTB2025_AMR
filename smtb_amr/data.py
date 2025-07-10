@@ -1,7 +1,12 @@
+import pickle
+from pathlib import Path
+from typing import Literal
+
 import pandas as pd
 import torch
 from lightning.pytorch import LightningDataModule
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 
 class AMRDataset(Dataset):
@@ -86,3 +91,73 @@ class AMRDataModule(LightningDataModule):
     @property
     def n_feats(self):
         return self.train.n_feats
+
+
+class ESMDataset(Dataset):
+    def __init__(self, embeddings_folder: str, csv_file: str, split: Literal["train", "valid", "test"]):
+        self.df = pd.read_csv(csv_file)
+        self.df = self.df[self.df["split"] == split]
+        self.embeddings_folder = Path(embeddings_folder)
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
+        with open(self.embeddings_folder / f"{row['ID']}.pkl", "rb") as f:
+            x = pickle.load(f).detach().cpu().float()
+        y = torch.tensor(row["label"], dtype=torch.float32).view(1)
+        return x, y
+
+
+class ESMDataModule(LightningDataModule):
+    def __init__(
+        self,
+        embeddings_folder: str,
+        csv_file: str,
+        batch_size: int = 64,
+        num_workers: int = 0,
+    ):
+        super().__init__()
+        self.embeddings_folder = embeddings_folder
+        self.csv_file = csv_file
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+    def setup(self, stage=None):
+        self.train = ESMDataset(self.embeddings_folder, self.csv_file, "train")
+        self.val = ESMDataset(self.embeddings_folder, self.csv_file, "valid")
+        self.test = ESMDataset(self.embeddings_folder, self.csv_file, "test")
+
+    def train_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.train,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    def val_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.val,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    def test_dataloader(self):
+        return torch.utils.data.DataLoader(
+            self.test,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
+
+    @property
+    def n_feats(self):
+        if len(self.train) > 0:
+            return self.train[0][0].shape[0]
+        return 0
