@@ -53,6 +53,13 @@ class GenomeOceanEmbedder:
         logger.info(f"Loading GenomeOcean model: {model_name}")
         logger.info(f"Using device: {self.device}")
 
+        # Log GPU information if available
+        if self.device == "cuda" and torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
+            logger.info(f"GPU: {gpu_name}")
+            logger.info(f"GPU Memory: {gpu_memory:.1f} GB")
+
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
@@ -60,13 +67,34 @@ class GenomeOceanEmbedder:
             padding_side="left",
         )
 
-        # Load model
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16,
-            attn_implementation="flash_attention_2",
-        ).to(self.device)
+        # Load model directly on target device
+        if self.device == "cuda":
+            try:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    trust_remote_code=True,
+                    torch_dtype=torch.bfloat16,
+                    attn_implementation="flash_attention_2",
+                    device_map="auto",
+                )
+                logger.info("Successfully loaded model with Flash Attention 2")
+            except Exception as e:
+                logger.warning(
+                    f"Flash Attention 2 failed, falling back to standard attention: {e}"
+                )
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    model_name,
+                    trust_remote_code=True,
+                    torch_dtype=torch.bfloat16,
+                    device_map="auto",
+                )
+        else:
+            # For CPU, don't use flash attention
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                trust_remote_code=True,
+                torch_dtype=torch.float32,  # Use float32 for CPU
+            ).to(self.device)
 
         logger.info("Model loaded successfully")
 
@@ -74,6 +102,8 @@ class GenomeOceanEmbedder:
         """Determine the appropriate device to use"""
         if device == "auto":
             if torch.cuda.is_available():
+                # Set GPU memory management for better performance
+                torch.cuda.empty_cache()
                 return "cuda"
             else:
                 logger.warning("CUDA not available, falling back to CPU")
@@ -91,6 +121,10 @@ class GenomeOceanEmbedder:
             Tensor of embeddings with shape (batch_size, embedding_dim)
         """
         try:
+            # Clear GPU cache before processing if using CUDA
+            if self.device == "cuda":
+                torch.cuda.empty_cache()
+
             # Tokenize sequences
             output = self.tokenizer.batch_encode_plus(
                 sequences,
@@ -120,10 +154,18 @@ class GenomeOceanEmbedder:
                 attention_mask_cpu, dim=1
             )
 
+            # Clear variables from GPU memory
+            del input_ids, attention_mask, model_output, attention_mask_cpu
+            if self.device == "cuda":
+                torch.cuda.empty_cache()
+
             return embedding
 
         except Exception as e:
             logger.error(f"Error generating embeddings: {e}")
+            # Clear GPU memory on error
+            if self.device == "cuda":
+                torch.cuda.empty_cache()
             raise
 
 
@@ -246,6 +288,15 @@ def process_sequences_in_batches(
             logger.info(
                 f"Processing batch {i // batch_size + 1}: {len(uncached_sequences)} new sequences"
             )
+
+            # Log GPU memory usage if available
+            if torch.cuda.is_available():
+                gpu_memory_used = torch.cuda.memory_allocated() / 1e9
+                gpu_memory_cached = torch.cuda.memory_reserved() / 1e9
+                logger.debug(
+                    f"GPU Memory - Used: {gpu_memory_used:.2f} GB, Cached: {gpu_memory_cached:.2f} GB"
+                )
+
             try:
                 embeddings = embedder.generate_embeddings(uncached_sequences)
 
