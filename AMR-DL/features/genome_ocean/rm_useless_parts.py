@@ -77,11 +77,26 @@ keys = [
 
 # 1. Get all fasta files in the directory
 def get_fasta_files(directory):
-    """Get all FASTA files in the directory."""
+    """Get all FASTA files in the directory and subdirectories."""
     fasta_extensions = ["*.fasta", "*.fa", "*.fna", "*.ffn"]
     fasta_files = []
+
+    # First, look for files directly in the directory
     for ext in fasta_extensions:
         fasta_files.extend(glob(os.path.join(directory, ext)))
+
+    # Then, look for subdirectories and search for FFN files inside them
+    for item in os.listdir(directory):
+        item_path = os.path.join(directory, item)
+        if os.path.isdir(item_path):
+            print(f"Found subdirectory: {item}")
+            # Look for FFN files specifically in subdirectories
+            for ext in fasta_extensions:
+                sub_files = glob(os.path.join(item_path, ext))
+                if sub_files:
+                    print(f"  Found {len(sub_files)} files with extension {ext}")
+                    fasta_files.extend(sub_files)
+
     return fasta_files
 
 
@@ -197,29 +212,28 @@ if __name__ == "__main__":
         description="Filter FASTA files to keep only sequences containing specific gene keys."
     )
     parser.add_argument(
-        "path",
-        type=str,
-        help="Path to the directory containing FASTA files to process"
+        "path", type=str, help="Path to the directory containing FASTA files to process"
     )
     parser.add_argument(
-        "-o", "--output-dir",
+        "-o",
+        "--output-dir",
         type=str,
         default=None,
-        help="Output directory for filtered files (default: filtered_ffn_files in input directory)"
+        help="Output directory for filtered files (default: filtered_ffn_files in input directory)",
     )
-    
+
     args = parser.parse_args()
     path = args.path
-    
+
     # Validate path exists
     if not os.path.exists(path):
         print(f"Error: Path {path} does not exist")
         exit(1)
-    
+
     if not os.path.isdir(path):
         print(f"Error: Path {path} is not a directory")
         exit(1)
-    
+
     # Remove duplicates from keys list
     unique_keys = list(set(keys))
     print(f"Looking for {len(unique_keys)} unique gene keys:")
