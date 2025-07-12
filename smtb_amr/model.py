@@ -8,20 +8,24 @@ class MyModel(LightningModule):
         self,
         n_feats: int,
         dropout: float = 0.5,
-        hidden_dim: int = 64,
+        hidden_dim: int = 128,
         lr: float = 1e-3,
+        weight_decay: float = 1e-5,  # suggestion 3: parameterize weight decay
     ):
         super().__init__()
         self.mlp = torch.nn.Sequential(
             torch.nn.Linear(n_feats, hidden_dim),  # layer 1
+            torch.nn.BatchNorm1d(hidden_dim),  # suggestion 1: batch norm
             torch.nn.ReLU(),  # activation function
             torch.nn.Dropout(dropout),  # dropout for regularization
             torch.nn.Linear(hidden_dim, hidden_dim // 2),
+            torch.nn.BatchNorm1d(hidden_dim // 2),  # suggestion 1: batch norm
             torch.nn.ReLU(),
             torch.nn.Dropout(dropout),
             torch.nn.Linear(hidden_dim // 2, 1),
         )
         self.lr = lr
+        self.weight_decay = weight_decay  # suggestion 3
 
     def forward(self, x: torch.Tensor):
         return self.mlp(x)
@@ -57,7 +61,7 @@ class MyModel(LightningModule):
         return self.shared_step(batch, step="test")
 
     def configure_optimizers(self):
-        optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=1e-5)
+        optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)  # suggestion 3
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, mode="min", factor=0.1, patience=5, verbose=True)
         return {
