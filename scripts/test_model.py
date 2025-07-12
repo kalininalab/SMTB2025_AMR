@@ -18,7 +18,7 @@ parser.add_argument("--batch_size", type=int, default=32, help="Batch size for t
 parser.add_argument("--hidden_dim", type=int, default=64, help="Hidden dimension for the model")
 parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate for the optimizer")
 parser.add_argument("--num_workers", type=int, default=0, help="Number of workers for data loading")
-parser.add_argument("--checkpoints")
+parser.add_argument("--checkpoints", type=str, required=True, help="Path to the model checkpoint")
 
 args = parser.parse_args()
 
