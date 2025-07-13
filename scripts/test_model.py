@@ -30,7 +30,12 @@ datamodule = AMRDataModule(
 )
 datamodule.setup()
 
-model = MyModel.load_from_checkpoint(args.checkpoints, n_feats=datamodule.n_feats)
+
+model = MyModel.load_from_checkpoint(
+    args.checkpoints,
+    n_feats=datamodule.n_feats,
+    hidden_dim=64,
+)
 csv_logger = CSVLogger("logs", name=f"{args.checkpoints.split('/')[-4][4:]}_{args.data.split('/')[-1]}")
 
 trainer = Trainer(
